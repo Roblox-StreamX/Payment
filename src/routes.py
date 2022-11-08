@@ -42,8 +42,7 @@ async def get_customer_info(req) -> web.Response:
 
 @routes.get("/active")
 async def get_active_keys(req) -> web.Response:
-    keys = [app.redis.hget(u, "apikey") for u in app.redis.smembers("userids")]
-    return mkresp(200, {"keys": keys})
+    return mkresp(200, {"keys": app.redis.smembers("apikeys")})
 
 @routes.post("/delete")
 async def delete_api_key(req) -> web.Response:
@@ -74,6 +73,7 @@ async def activate(req) -> web.Response:
         # Create new subscription
         apikey = generate_apikey()
         app.redis.sadd("userids", userid)
+        app.redis.sadd("apikeys", apikey)
         app.redis.hset(userid, mapping = {"username": username, "expires": expires, "apikey": apikey})
         return mkresp(200, {"message": "OK", "apikey": apikey})
 
