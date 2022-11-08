@@ -44,6 +44,14 @@ async def get_customer_info(req) -> web.Response:
 async def get_active_keys(req) -> web.Response:
     return mkresp(200, {"keys": app.redis.smembers("apikeys")})
 
+@routes.get("/active/{key}")
+async def check_active_key(req) -> web.Response:
+    try:
+        return mkresp(200, {"active": bool(app.redis.sismember("apikeys", req.match_info["key"])[0])})
+
+    except KeyError:
+        return mkresp(400, {"message": "Missing API key."})
+
 @routes.post("/delete")
 async def delete_api_key(req) -> web.Response:
     try:
