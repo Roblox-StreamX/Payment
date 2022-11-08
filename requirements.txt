@@ -1,3 +1,4 @@
+rich
 redis
 redis[hiredis]
 aiohttp
