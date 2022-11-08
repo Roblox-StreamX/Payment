@@ -5,3 +5,4 @@ __pycache__/
 # Hide redis files
 db/*.rdb
 db/*.aof
+db/appendonlydir
