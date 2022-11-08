@@ -46,7 +46,17 @@ async def get_active_keys(req) -> web.Response:
 
 @routes.post("/delete")
 async def delete_api_key(req) -> web.Response:
-    return mkresp(200, {"message": "NOT COMPLETE"})
+    try:
+        userid = sanitize_userid((await req.post())["userid"])
+        if not app.redis.smismember("userids", userid):
+            return mkresp(404, {"message": "Unknown user ID."})
+
+        app.redis.delete(userid)
+        app.redis.srem("userids", userid)
+        return mkresp(200, {"message": "OK"})
+
+    except ValueError:
+        return mkresp(400, {"message": "Invalid Roblox user ID provided."})
 
 @routes.post("/activate")
 async def activate(req) -> web.Response:
@@ -62,7 +72,7 @@ async def activate(req) -> web.Response:
 
         # Create new subscription
         apikey = generate_apikey()
-        app.redis.sadd("userids", int(userid.split(":")[1]))
+        app.redis.sadd("userids", userid)
         app.redis.hset(userid, mapping = {"username": username, "expires": expires, "apikey": apikey})
         return mkresp(200, {"message": "OK", "apikey": apikey})
 
