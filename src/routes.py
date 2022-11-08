@@ -59,8 +59,13 @@ async def delete_api_key(req) -> web.Response:
         if not app.redis.sismember("userids", userid)[0]:
             return mkresp(404, {"message": "Unknown user ID."})
 
+        # Fetch API key
+        apikey = app.redis.hget(userid, "apikey")
+
+        # Handle deletion
         app.redis.delete(userid)
         app.redis.srem("userids", userid)
+        app.redis.srem("apikeys", apikey)
         return mkresp(200, {"message": "OK"})
 
     except ValueError:
