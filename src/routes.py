@@ -48,7 +48,7 @@ async def get_active_keys(req) -> web.Response:
 async def delete_api_key(req) -> web.Response:
     try:
         userid = sanitize_userid((await req.post())["userid"])
-        if not app.redis.smismember("userids", userid):
+        if not app.redis.smismember("userids", userid)[0]:
             return mkresp(404, {"message": "Unknown user ID."})
 
         app.redis.delete(userid)
