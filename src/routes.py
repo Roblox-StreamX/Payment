@@ -47,7 +47,7 @@ async def get_active_keys(req) -> web.Response:
 @routes.get("/active/{key}")
 async def check_active_key(req) -> web.Response:
     try:
-        return mkresp(200, {"active": bool(app.redis.sismember("apikeys", req.match_info["key"])[0])})
+        return mkresp(200, {"active": bool(app.redis.sismember("apikeys", req.match_info["key"]))})
 
     except KeyError:
         return mkresp(400, {"message": "Missing API key."})
@@ -56,7 +56,7 @@ async def check_active_key(req) -> web.Response:
 async def delete_api_key(req) -> web.Response:
     try:
         userid = sanitize_userid((await req.post())["userid"])
-        if not app.redis.sismember("userids", userid)[0]:
+        if not app.redis.sismember("userids", userid):
             return mkresp(404, {"message": "Unknown user ID."})
 
         # Fetch API key
