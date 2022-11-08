@@ -42,7 +42,8 @@ async def get_customer_info(req) -> web.Response:
 
 @routes.get("/active")
 async def get_active_keys(req) -> web.Response:
-    return mkresp(200, {"message": "NOT COMPLETE"})
+    keys = [app.redis.hget(u, "apikey") for u in app.redis.smembers("userids")]
+    return mkresp(200, {"keys": keys})
 
 @routes.post("/delete")
 async def delete_api_key(req) -> web.Response:

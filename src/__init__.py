@@ -27,7 +27,7 @@ app.rpath = lambda p: os.path.abspath(os.path.join(topdir, p))  # noqa
 # Launch redis
 log.info("Connecting to redis, please wait ...")
 try:
-    app.redis = Redis("127.0.0.1", socket_connect_timeout = 2)
+    app.redis = Redis("127.0.0.1", socket_connect_timeout = 2, decode_responses = True)
     app.redis.ping()
     log.info("Connected to 127.0.0.1!")
 
