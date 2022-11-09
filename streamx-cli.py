@@ -55,6 +55,7 @@ def function_help(a: list) -> None:
     ~     is-active <key>         -- Checks if an API key is valid
     ~     delete <userid>         -- Removes a user and their API key
     ~     info <userid>           -- Shows information on a user
+    ~     exit                    -- Exits the CLI
     """.split("\n") if x.strip())
     return print(msg)
 
@@ -71,7 +72,7 @@ def function_delete(a: list) -> None:
     if not a:
         return print("[red]\\[streamx]: missing argument <userid>[/]")
 
-    make_request("/delete", method = "post", data = {"userid": a[0]})
+    print(make_request("/delete", method = "post", data = {"userid": a[0]}))
 
 def function_info(a: list) -> None:
     if not a:
@@ -84,7 +85,8 @@ commands = {
     "get-active": function_active,
     "is-active": function_isactive,
     "delete": function_delete,
-    "info": function_info
+    "info": function_info,
+    "exit": lambda *a: exit()
 }
 
 # Actual CLI
