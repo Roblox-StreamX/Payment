@@ -24,6 +24,8 @@ if not os.path.isfile(serverpem):
 with open(serverpem, "r") as fh:
     streamx_token = fh.read()
 
+log.info(f"StreamX API key is {streamx_token}")
+
 # Helpers
 def sanitize_userid(text: str) -> str:
     d = int(text)
