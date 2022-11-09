@@ -1,6 +1,7 @@
 # Copyright 2022 StreamX Developers
 
 # Modules
+import time
 import logging
 import secrets
 from src import app
@@ -42,12 +43,17 @@ async def get_customer_info(req) -> web.Response:
 
 @routes.get("/active")
 async def get_active_keys(req) -> web.Response:
-    return mkresp(200, {"keys": app.redis.smembers("apikeys")})
+    return mkresp(200, {"keys": list(app.redis.smembers("apikeys"))})
 
 @routes.get("/active/{key}")
 async def check_active_key(req) -> web.Response:
     try:
-        return mkresp(200, {"active": bool(app.redis.sismember("apikeys", req.match_info["key"]))})
+        k = f"apikey:{req.match_info['key']}"
+        if not app.redis.exists(k):
+            return mkresp(200, {"active": False})
+
+        expires = app.redis.hget(app.redis.get(k), "expires")
+        return mkresp(200, {"active": float(expires) < time.time()})
 
     except KeyError:
         return mkresp(400, {"message": "Missing API key."})
@@ -56,7 +62,7 @@ async def check_active_key(req) -> web.Response:
 async def delete_api_key(req) -> web.Response:
     try:
         userid = sanitize_userid((await req.post())["userid"])
-        if not app.redis.sismember("userids", userid):
+        if not app.redis.exists(userid):
             return mkresp(404, {"message": "Unknown user ID."})
 
         # Fetch API key
@@ -64,7 +70,7 @@ async def delete_api_key(req) -> web.Response:
 
         # Handle deletion
         app.redis.delete(userid)
-        app.redis.srem("userids", userid)
+        app.redis.delete(f"apikey:{apikey}")
         app.redis.srem("apikeys", apikey)
         return mkresp(200, {"message": "OK"})
 
@@ -85,7 +91,7 @@ async def activate(req) -> web.Response:
 
         # Create new subscription
         apikey = generate_apikey()
-        app.redis.sadd("userids", userid)
+        app.redis.set(f"apikey:{apikey}", userid)
         app.redis.sadd("apikeys", apikey)
         app.redis.hset(userid, mapping = {"username": username, "expires": expires, "apikey": apikey})
         return mkresp(200, {"message": "OK", "apikey": apikey})
