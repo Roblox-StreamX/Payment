@@ -8,4 +8,4 @@ db/*.aof
 db/appendonlydir
 
 # Hide server.pem (API key)
-db/server.pem
+*.pem
