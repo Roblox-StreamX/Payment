@@ -40,9 +40,11 @@ def generate_apikey() -> str:
 async def authentication_handler(req: web.Request, handler: Any) -> web.Response:
     token = req.headers.get("X-StreamX-Token")
     if token != streamx_token:
-        return mkresp(401, {"message": "Unauthorized."})
+        return mkresp(401, {"message": "Unauthorized"})
 
     return await handler(req)
+
+app.middlewares.append(authentication_handler)
 
 # Routes
 @routes.get("/")
