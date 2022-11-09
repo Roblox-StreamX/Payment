@@ -1,10 +1,12 @@
 # Copyright 2022 StreamX Developers
 
 # Modules
+import os
 import time
 import logging
 import secrets
 from src import app
+from typing import Any
 from aiohttp import web
 
 # Initialization
@@ -12,6 +14,15 @@ def mkresp(code: int, data: dict = {}) -> web.Response:
     return web.json_response({"code": code} | data, status = code)
 
 log, routes = logging.getLogger("rich"), web.RouteTableDef()
+
+# Load server.pem
+serverpem = app.rpath("db/server.pem")
+if not os.path.isfile(serverpem):
+    with open(serverpem, "w+") as fh:
+        fh.write(secrets.token_urlsafe(256))
+
+with open(serverpem, "r") as fh:
+    streamx_token = fh.read()
 
 # Helpers
 def sanitize_userid(text: str) -> str:
@@ -23,6 +34,15 @@ def sanitize_userid(text: str) -> str:
 
 def generate_apikey() -> str:
     return secrets.token_urlsafe(64)
+
+# Authentication
+@web.middleware
+async def authentication_handler(req: web.Request, handler: Any) -> web.Response:
+    token = req.headers.get("X-StreamX-Token")
+    if token != streamx_token:
+        return mkresp(401, {"message": "Unauthorized."})
+
+    return await handler(req)
 
 # Routes
 @routes.get("/")
