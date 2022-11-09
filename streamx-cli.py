@@ -5,6 +5,7 @@
 import os
 import shlex
 import requests
+from datetime import timedelta, date
 try:
     from rich import print
 
@@ -12,12 +13,12 @@ except ImportError:
     pass  # Rich is nice, but not required
 
 # Initialization
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 print(f"StreamX Payment CLI v{__version__}\nCopyright (c) 2022 StreamX Developers\n")
 
 # Fetch URL + API key
 base_url = input("StreamX Purchase Server URI (quantumpython.xyz): ") or "https://streamxpayment.quantumpython.xyz"
-apikeys = [f for f in os.listdir() if ".pem" in f]
+apikeys = [f for f in os.listdir() if ".pem" in f] + (["db/server.pem"] if os.path.isfile("db/server.pem") else [])
 if not apikeys:
     api_key = input("StreamX API Key: ")
 
@@ -54,6 +55,7 @@ def function_help(a: list) -> None:
     ~     get-active              -- Lists all active API keys
     ~     is-active <key>         -- Checks if an API key is valid
     ~     delete <userid>         -- Removes a user and their API key
+    ~     activate <userid>       -- Activate/reactivate a user's API status
     ~     info <userid>           -- Shows information on a user
     ~     exit                    -- Exits the CLI
     """.split("\n") if x.strip())
@@ -80,11 +82,32 @@ def function_info(a: list) -> None:
 
     print(make_request(f"/info/{a[0]}"))
 
+def function_activate(a: list) -> None:
+    try:
+        if not a:
+            return print("[red]\\[streamx]: missing argument <userid>[/]")
+
+        opt, username = int(input("Activate (1) or reactivate (2)? ")), ""
+        if opt not in [1, 2]:
+            return print("[red]\\[streamx]: invalid option[/]")
+
+        elif opt != 2:
+            username = input("Roblox Username: ")
+
+        expires = int((date.today() + timedelta(days = int(input("Expires in (days from now): ")))).strftime("%s"))
+        print(make_request("/activate", method = "post", data = {
+            "userid": a[0], "username": username, "expires": expires
+        }))
+
+    except ValueError:
+        return print("[red]\\[streamx]: invalid option[/]")
+
 commands = {
     "help": function_help,
     "get-active": function_active,
     "is-active": function_isactive,
     "delete": function_delete,
+    "activate": function_activate,
     "info": function_info,
     "exit": lambda *a: exit()
 }
