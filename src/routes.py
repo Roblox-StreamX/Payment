@@ -105,6 +105,9 @@ async def delete_api_key(req) -> web.Response:
 async def activate(req) -> web.Response:
     try:
         d = await req.post()
+        if not d:
+            d = await req.json()
+
         userid, username, expires = sanitize_userid(d["userid"]), d["username"], d["expires"]
 
         # Renew existing subscription
