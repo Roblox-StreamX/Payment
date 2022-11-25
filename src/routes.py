@@ -139,4 +139,8 @@ async def activate(req) -> web.Response:
     except ValueError:
         return mkresp(400, {"message": "Invalid Roblox user ID provided."})
 
+@routes.get("/status")
+async def status(req) -> web.Response:
+    return mkresp(200, {"message": "StreamX Payment is working correctly!"})
+
 app.add_routes(routes)
