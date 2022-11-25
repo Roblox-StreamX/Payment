@@ -108,6 +108,9 @@ async def delete_api_key(req) -> web.Response:
     except ValueError:
         return mkresp(400, {"message": "Invalid Roblox user ID provided."})
 
+    except Exception:
+        return mkresp(400, {"message": "I don't think you understand what you're doing."})
+
 @routes.post("/activate")
 async def activate(req) -> web.Response:
     try:
