@@ -118,11 +118,15 @@ print("Type 'help' for a list of commands.\n")
 while True:
     try:
         data = shlex.split(input("SX >> "))
-        if data[0] not in commands:
-            print("[red]\\[streamx]: invalid command[/]")
-            continue
+        try:
+            if data[0] not in commands:
+                print("[red]\\[streamx]: invalid command[/]")
+                continue
 
-        commands[data[0]](data[1:])
+            commands[data[0]](data[1:])
+        except Exception as e:
+            pass
 
     except KeyboardInterrupt:
-        break
+        print()
+        pass
