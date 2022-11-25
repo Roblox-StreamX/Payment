@@ -57,6 +57,7 @@ def function_help(a: list) -> None:
     ~     delete <userid>         -- Removes a user and their API key
     ~     activate <userid>       -- Activate/reactivate a user's API status
     ~     info <userid>           -- Shows information on a user
+    ~     clear                   -- Clears the screen
     ~     exit                    -- Exits the CLI
     """.split("\n") if x.strip())
     return print(msg)
@@ -102,6 +103,12 @@ def function_activate(a: list) -> None:
     except ValueError:
         return print("[red]\\[streamx]: invalid option[/]")
 
+def function_clear(a: list) -> None:
+    if os.name != "nt":
+        os.system("clear")
+    else:
+        os.system("cls")
+
 commands = {
     "help": function_help,
     "get-active": function_active,
@@ -109,6 +116,7 @@ commands = {
     "delete": function_delete,
     "activate": function_activate,
     "info": function_info,
+    "clear": function_clear,
     "exit": lambda *a: exit()
 }
 
