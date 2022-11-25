@@ -85,7 +85,11 @@ async def check_active_key(req) -> web.Response:
 @routes.post("/delete")
 async def delete_api_key(req) -> web.Response:
     try:
-        userid = sanitize_userid((dict(await req.post()) | dict(await req.json()))["userid"])
+        d = await req.post()
+        if not d:
+            d = await req.json()
+
+        userid = sanitize_userid(d["userid"])
         if not app.redis.exists(userid):
             return mkresp(404, {"message": "Unknown user ID."})
 
@@ -107,7 +111,10 @@ async def delete_api_key(req) -> web.Response:
 @routes.post("/activate")
 async def activate(req) -> web.Response:
     try:
-        d = dict(await req.post()) | dict(await req.json())
+        d = await req.post()
+        if not d:
+            d = await req.json()
+
         userid, username, expires = sanitize_userid(d["userid"]), d["username"], d["expires"]
 
         # Renew existing subscription
