@@ -42,7 +42,7 @@ try:
         raise Exception
 
     os.system("cls" if os.name == "nt" else "clear")
-    print("... Connected to StreamX ...")
+    print("-+-+-+-+-+- Connected to StreamX -+-+-+-+-+-")
 
 except Exception:
     exit("Failed to connect to Purchase Server; check API key.")
