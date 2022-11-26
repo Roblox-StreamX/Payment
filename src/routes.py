@@ -41,7 +41,7 @@ def generate_apikey() -> str:
 @web.middleware
 async def authentication_handler(req: web.Request, handler: Any) -> web.Response:
     token = req.headers.get("X-StreamX-Token")
-    if token != streamx_token:
+    if (token != streamx_token) and req.path != "/":
         return mkresp(401, {"message": "Unauthorized"})
 
     return await handler(req)
@@ -138,9 +138,5 @@ async def activate(req) -> web.Response:
 
     except ValueError:
         return mkresp(400, {"message": "Invalid Roblox user ID provided."})
-
-@routes.get("/status")
-async def status(req) -> web.Response:
-    return mkresp(200, {"message": "StreamX Payment is working correctly!"})
 
 app.add_routes(routes)
