@@ -77,7 +77,7 @@ async def check_active_key(req) -> web.Response:
             return mkresp(200, {"active": False})
 
         expires = app.redis.hget(app.redis.get(k), "expires")
-        return mkresp(200, {"active": float(expires) < time.time()})
+        return mkresp(200, {"active": float(expires) > time.time()})
 
     except KeyError:
         return mkresp(400, {"message": "Missing API key."})
