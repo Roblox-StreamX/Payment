@@ -58,7 +58,7 @@ def function_help(a: list) -> None:
     ~ Commands
     ~     help                    -- Shows this message
     ~     active <key>            -- Checks if an API key is valid
-    ~     delete <userid>         -- Removes all stored data abouta  user
+    ~     delete <userid>         -- Removes all stored data about a user
     ~     activate <userid>       -- Activate/reactivate a user's API status
     ~     info <userid>           -- Shows information on a user
     ~     apikeys <userid>        -- Fetch all API keys of a user
