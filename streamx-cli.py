@@ -62,6 +62,7 @@ def function_help(a: list) -> None:
     ~     activate <userid>       -- Activate/reactivate a user's API status
     ~     info <userid>           -- Shows information on a user
     ~     apikeys <userid>        -- Fetch all API keys of a user
+    ~     invalidate <userid>     -- Invalidates a users API key
     ~     clear                   -- Clears the screen
     ~     exit                    -- Exits the CLI
     """.split("\n") if x.strip())
@@ -91,6 +92,17 @@ def function_apikeys(a: list) -> None:
 
     print(make_request(f"/info/{a[0]}")["apikeys"])
 
+def function_invalidate(a: list) -> None:
+    if not a:
+        return print("[red]\\[streamx]: missing argument <key>[/]")
+
+    try:
+        reason = input("Invalidation reason (abuse/regen): ")
+        print(make_request("/invalidate", method = "post", json = {"userid": int(a[0]), "reason": reason}))
+
+    except ValueError:
+        return print("[red]\\[streamx]: invalid userid[/]")
+
 def function_activate(a: list) -> None:
     try:
         if not a:
@@ -114,14 +126,7 @@ def function_activate(a: list) -> None:
 def function_clear(a: list) -> None:
     os.system("clear" if os.name != "nt" else "cls")
 
-commands = {
-    "help": function_help,
-    "active": function_active,
-    "delete": function_delete,
-    "activate": function_activate,
-    "info": function_info,
-    "apikeys": function_apikeys,
-    "clear": function_clear,
+commands = {k.split("_")[1]: v for k, v in globals().items() if k.startswith("function_")} | {
     "exit": lambda *a: exit()
 }
 
