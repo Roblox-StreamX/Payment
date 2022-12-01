@@ -4,8 +4,9 @@
 import os
 import logging
 from aiohttp import web
-from redis import Redis, exceptions
 from rich.logging import RichHandler
+from pymongo import MongoClient, errors
+from urllib.parse import quote_plus as qp
 
 # Setup logging
 logging.basicConfig(
@@ -20,19 +21,28 @@ log.info("StreamX Payment Backend is now starting ...")
 # Initialization
 app = web.Application()
 
-# Relative path generator
-topdir = os.path.dirname(os.path.dirname(__file__))
-app.rpath = lambda p: os.path.abspath(os.path.join(topdir, p))  # noqa
-
-# Launch redis
-log.info("Connecting to redis, please wait ...")
+# Connect to MongoDB
+log.info("Connecting to MongoDB, please wait ...")
 try:
-    app.redis = Redis("127.0.0.1", socket_connect_timeout = 2, decode_responses = True)
-    app.redis.ping()
-    log.info("Connected to 127.0.0.1!")
+    host, port = os.getenv("MONGO_HOST", ""), int(os.getenv("MONGO_PORT", 27017))
+    user, pasw = os.getenv("MONGO_USER", ""), os.getenv("MONGO_PASS", "")
+    authstr = f"{qp(user)}:{qp(pasw)}@" if (user.strip() and pasw.strip()) else ""
+    app.mongo = MongoClient(
+        f"mongodb://{authstr}{host}",
+        port = port,
+        serverSelectionTimeoutMS = 1000  # ms
+    )
+    try:
+        app.mongo.server_info()
 
-except exceptions.ConnectionError:
-    log.error("FAILED to connect to Redis! Is it running?")
+    except errors.ServerSelectionTimeoutError:
+        log.error("FAILED to connect to MongoDB! Check MONGO* env and database status.")
+        exit(1)
+
+    app.db = app.mongo["purchases"]  # Reference the "purchases" database
+
+except ValueError:
+    log.error("FAILED to read environment variables! Check MONGO_PORT and ensure it's an integer.")
     exit(1)
 
 # Load routes

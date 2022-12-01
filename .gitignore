@@ -7,5 +7,5 @@ db/*.rdb
 db/*.aof
 db/appendonlydir
 
-# Hide server.pem (API key)
-*.pem
+# Hide CLI details
+.streamx.json

@@ -1,4 +1,3 @@
 rich
-redis
-redis[hiredis]
+pymongo
 aiohttp

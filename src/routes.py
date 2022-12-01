@@ -1,8 +1,6 @@
 # Copyright 2022 StreamX Developers
 
 # Modules
-import os
-import time
 import logging
 import secrets
 from src import app
@@ -15,27 +13,16 @@ def mkresp(code: int, data: dict = {}) -> web.Response:
 
 log, routes = logging.getLogger("rich"), web.RouteTableDef()
 
-# Load server.pem
-serverpem = app.rpath("db/server.pem")
-if not os.path.isfile(serverpem):
-    with open(serverpem, "w+") as fh:
-        fh.write(secrets.token_urlsafe(256))
+# Fetch server API key
+streamx_token = app.db["authkey"].find_one()
+if streamx_token is None:
+    streamx_token = secrets.token_urlsafe(64)
+    app.db["authkey"].insert_one({"key": streamx_token})
 
-with open(serverpem, "r") as fh:
-    streamx_token = fh.read()
+else:
+    streamx_token = streamx_token["key"]
 
-log.info(f"StreamX API key is {streamx_token}")
-
-# Helpers
-def sanitize_userid(text: str) -> str:
-    d = int(text)
-    if d > (10 ** 10) or d < 1:
-        raise ValueError
-
-    return f"user:{text}"
-
-def generate_apikey() -> str:
-    return secrets.token_urlsafe(64)
+log.info(f"StreamX Authentication key is:\n{streamx_token}")
 
 # Authentication
 @web.middleware
@@ -56,28 +43,25 @@ async def index(req) -> web.Response:
 @routes.get("/info/{userid}")
 async def get_customer_info(req) -> web.Response:
     try:
-        data = app.redis.hgetall(sanitize_userid(req.match_info["userid"]))
+        data = app.db["data"].find_one({"userid": int(req.match_info["userid"])})
         if not data:
             return mkresp(404, {"message": "No information available."})
 
+        data = dict(data)
+        del data["_id"]  # Stop ObjectId class from hitting the JSON serializer
         return mkresp(200, data)
 
     except ValueError:
         return mkresp(400, {"message": "Invalid Roblox user ID provided."})
 
-@routes.get("/active")
-async def get_active_keys(req) -> web.Response:
-    return mkresp(200, {"keys": list(app.redis.smembers("apikeys"))})
-
 @routes.get("/active/{key}")
 async def check_active_key(req) -> web.Response:
     try:
-        k = f"apikey:{req.match_info['key']}"
-        if not app.redis.exists(k):
+        user = app.db["data"].find_one({"apikeys": {"key": req.match_info["key"], "reason": None}})
+        if user is None:
             return mkresp(200, {"active": False})
 
-        expires = app.redis.hget(app.redis.get(k), "expires")
-        return mkresp(200, {"active": float(expires) > time.time()})
+        return mkresp(200, {"active": user["quota"] > 0})
 
     except KeyError:
         return mkresp(400, {"message": "Missing API key."})
@@ -85,22 +69,12 @@ async def check_active_key(req) -> web.Response:
 @routes.post("/delete")
 async def delete_api_key(req) -> web.Response:
     try:
-        d = await req.post()
-        if not d:
-            d = await req.json()
+        d = await req.json()
+        success = app.db["data"].delete_one({"userid": int(d["userid"])})
+        if success:
+            return mkresp(200, {"message": "OK"})
 
-        userid = sanitize_userid(d["userid"])
-        if not app.redis.exists(userid):
-            return mkresp(404, {"message": "Unknown user ID."})
-
-        # Fetch API key
-        apikey = app.redis.hget(userid, "apikey")
-
-        # Handle deletion
-        app.redis.delete(userid)
-        app.redis.delete(f"apikey:{apikey}")
-        app.redis.srem("apikeys", apikey)
-        return mkresp(200, {"message": "OK"})
+        return mkresp(404, {"message": f"No records exist for user {d['userid']}."})
 
     except KeyError:
         return mkresp(400, {"message": "Missing user ID."})
@@ -108,33 +82,58 @@ async def delete_api_key(req) -> web.Response:
     except ValueError:
         return mkresp(400, {"message": "Invalid Roblox user ID provided."})
 
-    except Exception:
-        return mkresp(400, {"message": "I don't think you understand what you're doing."})
+@routes.post("/invalidate")
+async def invalidate(req) -> web.Response:
+    try:
+        d = await req.json()
+        userid, reason = int(d["userid"]), d["reason"]
+
+        # Invalidate current API key
+        user_data = app.db["data"].find_one({"userid": userid})
+        if user_data is None:
+            return mkresp(400, {"message": f"No records exist for user {d['userid']}."})
+
+        for k in user_data["apikeys"]:
+            if k["reason"] is None:
+                app.db["data"].update_one({"apikeys.key": k["key"]}, {"$set": {"apikeys.$.reason": reason}})
+
+        # Generate a new API key
+        apikey = secrets.token_urlsafe(64)
+        app.db["data"].update_one(
+            {"userid": user_data["userid"]},
+            {"$push": {"apikeys": {"key": apikey, "reason": None}}}
+        )
+        return mkresp(200, {"message": "OK", "apikey": apikey})
+
+    except KeyError:
+        return mkresp(400, {"message": "Missing one (or multiple) of required fields: userid, reason."})
+
+    except ValueError:
+        return mkresp(400, {"message": "Invalid Roblox user ID provided."})
 
 @routes.post("/activate")
 async def activate(req) -> web.Response:
     try:
-        d = await req.post()
-        if not d:
-            d = await req.json()
-
-        userid, username, expires = sanitize_userid(d["userid"]), d["username"], d["expires"]
+        d = await req.json()
+        userid, username, expires = int(d["userid"]), d["username"], d["expires"]
 
         # Renew existing subscription
-        user_expired = app.redis.hget(userid, "expires")
-        if user_expired is not None:
-            app.redis.hset(userid, "expires", expires)
-            return mkresp(200, {"message": "Subscription renewed.", "expires": expires})
+        user_data = app.db["data"].find_one({"userid": userid})
+        if user_data is not None:
+            quota = user_data["quota"]
+            app.db["data"].update_one({"userid": userid}, {"$set": {"quota": quota + expires}})
+            return mkresp(200, {"message": "Successfully extended quota", "old": quota, "new": quota + expires})
 
         # Create new subscription
-        apikey = generate_apikey()
-        app.redis.set(f"apikey:{apikey}", userid)
-        app.redis.sadd("apikeys", apikey)
-        app.redis.hset(userid, mapping = {"username": username, "expires": expires, "apikey": apikey})
-        return mkresp(200, {"message": "OK", "apikey": apikey})
+        apikey = secrets.token_urlsafe(64)
+        app.db["data"].insert_one({
+            "userid": userid, "username": username, "quota": expires,
+            "apikeys": [{"key": apikey, "reason": None}]
+        })
+        return mkresp(200, {"message": "OK", "apikey": apikey, "quota": expires})
 
     except KeyError:
-        return mkresp(400, {"message": "Required fields: userid, username, expires."})
+        return mkresp(400, {"message": "Missing one (or multiple) of required fields: userid, username, expires."})
 
     except ValueError:
         return mkresp(400, {"message": "Invalid Roblox user ID provided."})
