@@ -111,6 +111,42 @@ async def invalidate(req) -> web.Response:
     except ValueError:
         return mkresp(400, {"message": "Invalid Roblox user ID provided."})
 
+@routes.post("/whitelist/add")
+async def whitelist_add(req) -> web.Response:
+    try:
+        d = await req.json()
+        userid, gameid = int(d["userid"]), int(d["gameid"])
+        user_data = app.db["data"].find_one({"userid": userid})
+        if user_data is None:
+            return mkresp(400, {"message": f"No records exist for user {d['userid']}."})
+
+        app.db["data"].update_one({"userid": userid}, {"$push": {"whitelist": gameid}})
+        return mkresp(200, {"message": "OK"})
+
+    except KeyError:
+        return mkresp(400, {"message": "Missing one (or multiple) of required fields: userid, gameid."})
+
+    except ValueError:
+        return mkresp(400, {"message": "Invalid Roblox User ID or Game ID provided."})
+
+@routes.post("/whitelist/delete")
+async def whitelist_delete(req) -> web.Response:
+    try:
+        d = await req.json()
+        userid, gameid = int(d["userid"]), int(d["gameid"])
+        user_data = app.db["data"].find_one({"userid": userid})
+        if user_data is None:
+            return mkresp(400, {"message": f"No records exist for user {d['userid']}."})
+
+        app.db["data"].update_one({"userid": userid}, {"$pull": {"whitelist": gameid}})
+        return mkresp(200, {"message": "OK"})
+
+    except KeyError:
+        return mkresp(400, {"message": "Missing one (or multiple) of required fields: userid, gameid."})
+
+    except ValueError:
+        return mkresp(400, {"message": "Invalid Roblox User ID or Game ID provided."})
+
 @routes.post("/activate")
 async def activate(req) -> web.Response:
     try:
@@ -128,7 +164,8 @@ async def activate(req) -> web.Response:
         apikey = secrets.token_urlsafe(64)
         app.db["data"].insert_one({
             "userid": userid, "username": username, "quota": expires,
-            "apikeys": [{"key": apikey, "reason": None}]
+            "apikeys": [{"key": apikey, "reason": None}],
+            "whitelist": []
         })
         return mkresp(200, {"message": "OK", "apikey": apikey, "quota": expires})
 
