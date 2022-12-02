@@ -2,10 +2,5 @@
 __pycache__/
 *.pyc
 
-# Hide redis files
-db/*.rdb
-db/*.aof
-db/appendonlydir
-
 # Hide CLI details
 .streamx.json
