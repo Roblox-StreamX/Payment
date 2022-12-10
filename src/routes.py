@@ -165,7 +165,8 @@ async def activate(req) -> web.Response:
         app.db["data"].insert_one({
             "userid": userid, "username": username, "quota": expires,
             "apikeys": [{"key": apikey, "reason": None}],
-            "whitelist": []
+            "whitelist": [],
+            "lastusage": None
         })
         return mkresp(200, {"message": "OK", "apikey": apikey, "quota": expires})
 
