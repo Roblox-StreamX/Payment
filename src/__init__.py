@@ -28,7 +28,6 @@ try:
     authstr = f"{qp(user)}:{qp(pasw)}@" if (user.strip() and pasw.strip()) else ""
     app.mongo = MongoClient(
         f"mongodb://{authstr}{os.getenv('MONGO_HOSTS', 'localhost')}",
-        port = port,
         serverSelectionTimeoutMS = 1000  # ms
     )
     try:
