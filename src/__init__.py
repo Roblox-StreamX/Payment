@@ -24,11 +24,10 @@ app = web.Application()
 # Connect to MongoDB
 log.info("Connecting to MongoDB, please wait ...")
 try:
-    host, port = os.getenv("MONGO_HOST", ""), int(os.getenv("MONGO_PORT", 27017))
     user, pasw = os.getenv("MONGO_USER", ""), os.getenv("MONGO_PASS", "")
     authstr = f"{qp(user)}:{qp(pasw)}@" if (user.strip() and pasw.strip()) else ""
     app.mongo = MongoClient(
-        f"mongodb://{authstr}{host}",
+        f"mongodb://{authstr}{os.getenv('MONGO_HOSTS', 'localhost')}",
         port = port,
         serverSelectionTimeoutMS = 1000  # ms
     )

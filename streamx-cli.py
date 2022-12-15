@@ -62,7 +62,9 @@ def function_help(a: list) -> None:
     ~     activate <userid>       -- Activate/reactivate a user's API status
     ~     info <userid>           -- Shows information on a user
     ~     apikeys <userid>        -- Fetch all API keys of a user
-    ~     invalidate <userid>     -- Invalidates a users API key
+    ~     invalidate <userid>     -- Invalidates a user's API key
+    ~     whitelist <uid> <gid>   -- Adds a game to a user's whitelist
+    ~     dewhitelist <uid> <gid> -- Removes a game from a user's whitelist
     ~     clear                   -- Clears the screen
     ~     exit                    -- Exits the CLI
     """.split("\n") if x.strip())
@@ -122,6 +124,12 @@ def function_activate(a: list) -> None:
 
     except ValueError:
         return print("[red]\\[streamx]: invalid option[/]")
+
+def function_whitelist(a: list) -> None:
+    print(make_request("/whitelist/add", method = "post", json = {"userid": a[0], "gameid": a[1]}))
+
+def function_dewhitelist(a: list) -> None:
+    print(make_request("/whitelist/delete", method = "post", json = {"userid": a[0], "gameid": a[1]}))
 
 def function_clear(a: list) -> None:
     os.system("clear" if os.name != "nt" else "cls")
