@@ -13,7 +13,7 @@ except ImportError:
     pass  # Rich is nice, but not required
 
 # Initialization
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 print(f"StreamX Payment CLI v{__version__}\nCopyright (c) 2022 StreamX Developers\n")
 
 # Fetch URL + API key
@@ -38,7 +38,12 @@ def make_request(endpoint: str, method: str = "get", js: bool = True, **kwargs) 
     }[method](f"{base_url.rstrip('/')}{endpoint}", headers = {
         "X-StreamX-Token": authkey
     }, **kwargs)
-    return d.json() if js else d
+    try:
+        return d.json() if js else d
+
+    except json.JSONDecodeError as e:
+        print(f"[red]\\[streamx]: {d.text()}[/]")
+        raise e
 
 # Test connection first
 try:
