@@ -1,3 +1,4 @@
 rich
 pymongo
 aiohttp
+requests
