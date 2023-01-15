@@ -2,6 +2,7 @@
 
 # Modules
 import os
+import sys
 import logging
 from aiohttp import web
 from rich.logging import RichHandler
@@ -32,18 +33,19 @@ try:
         f"mongodb://{authstr}{config['mongo']['address']}",
         serverSelectionTimeoutMS = 1000  # ms
     )
-    try:
-        app.mongo.server_info()
+    if os.getenv("SXPYINSTALLER") != "1":
+        try:
+            app.mongo.server_info()
 
-    except errors.ServerSelectionTimeoutError:
-        log.error("FAILED to connect to MongoDB! Check MONGO* env and database status.")
-        exit(1)
+        except errors.ServerSelectionTimeoutError:
+            log.error("FAILED to connect to MongoDB! Check MONGO* env and database status.")
+            sys.exit(1)
 
-    app.db = app.mongo["purchases"]  # Reference the "purchases" database
+        app.db = app.mongo["purchases"]  # Reference the "purchases" database
 
 except ValueError:
     log.error("FAILED to read environment variables! Check MONGO_PORT and ensure it's an integer.")
-    exit(1)
+    sys.exit(1)
 
 # Load routes
 import src.routes  # noqa
