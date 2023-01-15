@@ -17,7 +17,10 @@ __version__ = "1.0.5"
 print(f"StreamX Payment CLI v{__version__}\nCopyright (c) 2022 StreamX Developers\n")
 
 # Fetch URL + API key
-base_url = input("StreamX Purchase Server URI (quantumpython.xyz): ") or "https://streamxpayment.quantumpython.xyz"
+base_url = input("What is the URL of your payment server?")
+if not base_url:
+    exit("Payment URL not specified. Please run the script again, inputting your payment URL.")
+     
 streamx_jsonfile = os.path.abspath(os.path.join(os.path.dirname(__file__), ".streamx.json"))
 if os.path.isfile(streamx_jsonfile):
     with open(streamx_jsonfile, "r") as fh:
@@ -26,8 +29,11 @@ if os.path.isfile(streamx_jsonfile):
     authkey = data["authkey"]
 
 else:
-    authkey = input("StreamX Authentication Key: ")
-    if (input("Save these credentials (y/N)? ") or "n").lower() == "y":
+    authkey = input("What is your payment server's authentication key?")
+    if not authkey: 
+        exit("Authentication key was not specified!")
+    
+    if (input("Would you like to save this so you dont have to enter it next time? (Y/N)") or "n").lower() == "y":
         with open(streamx_jsonfile, "w+") as fh:
             fh.write(json.dumps({"authkey": authkey}))
 
@@ -46,22 +52,24 @@ def make_request(endpoint: str, method: str = "get", js: bool = True, **kwargs) 
         raise e
 
 # Test connection first
+StatusCode = 0
 try:
     r = make_request("/", js = False)
     if r.status_code != 200:
+        StatusCode = r.status_code
         raise Exception
 
     os.system("cls" if os.name == "nt" else "clear")
     print("-+-+-+-+-+- Connected to StreamX -+-+-+-+-+-")
 
 except Exception:
-    exit("Failed to connect to Purchase Server; check API key.")
+    exit("Failed to connect to Purchase Server; check API key.\nStatus code: {StatusCode}")
 
 # Command handlers
 def function_help(a: list) -> None:
     msg = "\n".join(x.split("~ ")[1] for x in """
     ~ Commands
-    ~     help                    -- Shows this message
+    ~     help                    -- Displays help menu, as you got here.
     ~     active <key>            -- Checks if an API key is valid
     ~     delete <userid>         -- Removes all stored data about a user
     ~     activate <userid>       -- Activate/reactivate a user's API status
@@ -77,38 +85,38 @@ def function_help(a: list) -> None:
 
 def function_active(a: list) -> None:
     if not a:
-        return print("[red]\\[streamx]: missing argument <key>[/]")
+        return print("[red]\\[StreamX]: Argument is missing: <key>[/]")
 
     print(make_request(f"/active/{a[0]}"))
 
 def function_delete(a: list) -> None:
     if not a:
-        return print("[red]\\[streamx]: missing argument <userid>[/]")
+        return print("[red]\\[StreamX]: Argument is missing: <userid>[/]")
 
     print(make_request("/delete", method = "post", json = {"userid": a[0]}))
 
 def function_info(a: list) -> None:
     if not a:
-        return print("[red]\\[streamx]: missing argument <userid>[/]")
+        return print("[red]\\[StreamX]: Argument is missing: <userid>[/]")
 
     print(make_request(f"/info/{a[0]}"))
 
 def function_apikeys(a: list) -> None:
     if not a:
-        return print("[red]\\[streamx]: missing argument <userid>[/]")
+        return print("[red]\\[StreamX]: Arguement is missing: <userid>[/]")
 
     print(make_request(f"/info/{a[0]}")["apikeys"])
 
 def function_invalidate(a: list) -> None:
     if not a:
-        return print("[red]\\[streamx]: missing argument <key>[/]")
+        return print("[red]\\[StreamX]: Argument is missing: <key>[/]")
 
     try:
         reason = input("Invalidation reason (abuse/regen): ")
         print(make_request("/invalidate", method = "post", json = {"userid": int(a[0]), "reason": reason}))
 
     except ValueError:
-        return print("[red]\\[streamx]: invalid userid[/]")
+        return print("[red]\\[StreamX]: UserID is not valid! Make sure this is a valid user.[/]")
 
 def function_activate(a: list) -> None:
     try:
@@ -148,12 +156,12 @@ print("\nWelcome to the StreamX Payment System.")
 print("Type 'help' for a list of commands.\n")
 while True:
     try:
-        data = shlex.split(input("SX >> "))
+        data = shlex.split(input("Payment > "))
         if not data:
             continue
 
         elif data[0] not in commands:
-            print("[red]\\[streamx]: invalid command[/]")
+            print("[red]\\[StreamX]: Command not understood. Check your spelling and try again.[/]")
             continue
 
         commands[data[0]](data[1:])
@@ -162,4 +170,4 @@ while True:
         print()
 
     except Exception as e:
-        print(f"[red]\\[streamx]: internal error: {e}[/]")
+        print(f"[red]\\[StreamX]: Internal Error: {e}[/]")
