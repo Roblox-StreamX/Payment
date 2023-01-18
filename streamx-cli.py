@@ -13,14 +13,17 @@ except ImportError:
     pass  # Rich is nice, but not required
 
 # Initialization
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 print(f"StreamX Payment CLI v{__version__}\nCopyright (c) 2022 StreamX Developers\n")
 
 # Fetch URL + API key
-base_url = input("What is the URL of your payment server?")
+base_url = input("What is the URL of your payment server? ")
 if not base_url:
     exit("Payment URL not specified. Please run the script again, inputting your payment URL.")
-     
+
+if ":" not in base_url:
+    print("Notice: no port was specified in URL, assuming port 80.")
+
 streamx_jsonfile = os.path.abspath(os.path.join(os.path.dirname(__file__), ".streamx.json"))
 if os.path.isfile(streamx_jsonfile):
     with open(streamx_jsonfile, "r") as fh:
@@ -29,11 +32,11 @@ if os.path.isfile(streamx_jsonfile):
     authkey = data["authkey"]
 
 else:
-    authkey = input("What is your payment server's authentication key?")
-    if not authkey: 
+    authkey = input("What is your payment server's authentication key? ")
+    if not (authkey or "").strip():
         exit("Authentication key was not specified!")
-    
-    if (input("Would you like to save this so you dont have to enter it next time? (Y/N)") or "n").lower() == "y":
+
+    if (input("Would you like to save this so you dont have to enter it next time? (y/N)") or "n").lower() == "y":
         with open(streamx_jsonfile, "w+") as fh:
             fh.write(json.dumps({"authkey": authkey}))
 
@@ -52,7 +55,7 @@ def make_request(endpoint: str, method: str = "get", js: bool = True, **kwargs) 
         raise e
 
 # Test connection first
-StatusCode = 0
+StatusCode = None
 try:
     r = make_request("/", js = False)
     if r.status_code != 200:
@@ -63,7 +66,7 @@ try:
     print("-+-+-+-+-+- Connected to StreamX -+-+-+-+-+-")
 
 except Exception:
-    exit("Failed to connect to Purchase Server; check API key.\nStatus code: {StatusCode}")
+    exit(f"Failed to connect to Purchase Server; check API key.\n{f'Status code: {StatusCode}' if StatusCode is not None else ''}")
 
 # Command handlers
 def function_help(a: list) -> None:
