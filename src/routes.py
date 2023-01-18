@@ -151,7 +151,7 @@ async def whitelist_delete(req) -> web.Response:
 async def activate(req) -> web.Response:
     try:
         d = await req.json()
-        userid, username, expires = int(d["userid"]), d["username"], d["expires"]
+        userid, username, expires = int(d["userid"]), d["username"], int(d["expires"])
 
         # Renew existing subscription
         user_data = app.db["data"].find_one({"userid": userid})
@@ -174,6 +174,6 @@ async def activate(req) -> web.Response:
         return mkresp(400, {"message": "Missing one (or multiple) of required fields: userid, username, expires."})
 
     except ValueError:
-        return mkresp(400, {"message": "Invalid Roblox user ID provided."})
+        return mkresp(400, {"message": "Invalid Roblox user ID or quota value provided."})
 
 app.add_routes(routes)

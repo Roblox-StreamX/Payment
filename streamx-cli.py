@@ -122,24 +122,20 @@ def function_invalidate(a: list) -> None:
         return print("[red]\\[StreamX]: UserID is not valid! Make sure this is a valid user.[/]")
 
 def function_activate(a: list) -> None:
-    try:
-        if not a:
-            return print("[red]\\[streamx]: missing argument <userid>[/]")
+    if not a:
+        return print("[red]\\[streamx]: missing argument <userid>[/]")
 
-        opt, username = int(input("Activate (1) or extend quota (2)? ")), ""
-        if opt not in [1, 2]:
-            return print("[red]\\[streamx]: invalid option[/]")
+    opt, username = input("Activate (1) or extend quota (2)? "), ""
+    if opt not in ["1", "2"]:
+        return print(f"[red]\\[streamx]: option should be either 1 or 2; you typed '{opt}'[/]")
 
-        elif opt != 2:
-            username = input("Roblox Username: ")
+    elif opt != 2:
+        username = input("Roblox Username: ")
 
-        expires = int(input("Quota length (days): "))
-        print(make_request("/activate", method = "post", json = {
-            "userid": a[0], "username": username, "expires": expires
-        }))
-
-    except ValueError:
-        return print("[red]\\[streamx]: invalid option[/]")
+    expires = input("Quota length (days): ")
+    print(make_request("/activate", method = "post", json = {
+        "userid": a[0], "username": username, "expires": expires
+    }))
 
 def function_whitelist(a: list) -> None:
     print(make_request("/whitelist/add", method = "post", json = {"userid": a[0], "gameid": a[1]}))
